@@ -1,0 +1,246 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Memory Game</title>
+		<meta charset="UTF-8">
+		<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+		<link rel="preconnect" href="https://fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+        <style>
+            body{
+                width: 90%;
+                margin: auto;
+                font-family: 'Lato', sans-serif;
+            }
+            h2{
+                font-weight: 700;
+                margin-bottom: 10px;
+            }
+            #playarea{
+                list-style: none;
+            }
+            #playarea li{
+                margin: 5px;
+                width: 80px;
+                height: 100px;
+                float: left;
+                border:solid 1px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .red{
+                background-color: red;
+            }
+            .cardImg{
+                width: 60px;
+                height: auto;
+            }
+            .messageBlock{
+                display: none;
+            }
+
+            .flex{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .timer{
+                background-color: lightgrey;
+                padding: 5px 10px;
+                text-align: center;
+
+            }
+    
+        </style>
+	</head>
+	<body>
+
+        <div id="app">
+
+            <h1>Memory Game</h1>
+
+            
+            <div v-bind:class="flex">
+                <div>
+                    <h2>How to Play</h2>
+                    <div>Matching cards. Thats it!</div>
+                </div>
+                <div v-bind:class="timer">
+                    <div v-bind:class="{messageBlock:messageHide}">{{message}}</div>
+                    {{checkHours | zeroPadding}}：{{checkMinutes | zeroPadding}}：{{checkSeconds | zeroPadding}}
+                  
+                </div>
+
+            </div> 
+            
+
+            <ul id="playarea">
+                <li v-for="(card, index) in cards"
+                    v-on:click="isClick(index)"
+                    v-bind:class="{red: list_success[index] === 1}"
+                    >
+                    
+                    <span v-show="one === index || two === index || list_success[index] === 1">
+                      <img v-bind:class="individualCardImg" v-bind:src="'images/'+card.img">
+                    </span>
+                </li>        
+              </ul> 
+        </div>
+	<script>
+	
+
+    var total = 24;    // Total numbers of cards
+    var app = new Vue({
+        el: "#app",
+        data: {
+            flex: 'flex',
+            timer: 'timer',
+            individualCardImg:'cardImg',
+            one: -1,            // index for first card
+            two: -1,            // index for second card
+            count: 0,           // count how many sets of cards are matching
+            clickCount: 0,      // This is used to start the timer
+            messageHide : true,
+            message: "Good job!",
+            cardImages: [
+                { 
+                    img: 'bear.png'
+                },
+                {
+                    img: 'cat.png'
+                },
+                {
+                    img: 'dog.png'
+                },
+                {
+                    img: 'elephant.png'
+                },
+                {
+                    img: 'panda.png'
+                },
+                {
+                    img: 'rabbit.png'
+                },
+                {
+                    img: 'frog.png'
+                },
+                {
+                    img: 'hippo.png'
+                },
+                {
+                    img: 'lion.png'
+                },
+                {
+                    img: 'sheep.png'
+                },
+                {
+                    img: 'cow.png'
+                },
+                {
+                    img: 'giraff.png'
+                },
+            ], 
+            array_cards: [],    // array to store cards
+            list_success: [],   // array to store the cards matching
+            isFirst: true,      // check if the card select is first card
+            animationId: 0,
+            hours: 0,
+            minutes: 0,
+            second: 0,
+            startTime: 0,       // start time
+            endTime: 0,         // end time
+            diffTime: 0,        // time difference 
+            flag: false,
+        },
+        filters:{
+            zeroPadding(value){	
+                return value.toString().padStart(2, 0);
+            }
+        },
+        computed: {
+            cards: function () {
+                var vm = this;
+                // Make sets of cards 
+                for(i=0; i < total/2; i++) {
+                    
+                    vm.array_cards.push(vm.cardImages[i],vm.cardImages[i]);
+                    vm.list_success.push(0,0);
+                }
+
+                // randomaize the number fo array_cards
+                vm.array_cards.sort(function() {
+                    return Math.random() - Math.random();
+                });
+                return vm.array_cards;
+            },
+            checkHours(){
+                return Math.floor(this.diffTime / 1000 / 60 / 60);
+            },
+            checkMinutes(){
+                return Math.floor(this.diffTime / 1000 / 60) % 60;
+            },
+            checkSeconds(){
+                return Math.floor(this.diffTime / 1000) % 60;
+            },     
+        },   
+        methods: {
+            isClick: function (index) {
+                var vm = this; 
+                if(vm.clickCount == 0){
+                    if(vm.flag){
+                        vm.flag = false;
+                    }
+                    
+                    vm.flag = true; // flag set true when timer starts
+                    vm.setStartTime(vm.diffTime);
+                    (function progress(){
+                        vm.endTime = performance.now();
+                        vm.diffTime = vm.endTime - vm.startTime;
+                            [vm.second] = [Math.floor(vm.diffTime / 1000)];
+                        vm.animationId = window.requestAnimationFrame(progress);
+                    }());
+                    
+                } 
+
+                if(vm.isFirst){
+                    // First card                 
+                    vm.one = index;
+                    vm.two = -1;
+                    vm.isFirst = false;
+                }else{
+                    // Second card
+                    vm.two = index;
+                    // It first card and second card's value is same, change background colour red
+                    if(vm.array_cards[vm.one] === vm.array_cards[vm.two]){
+                        vm.list_success[vm.one] = 1;
+                        vm.list_success[vm.two] = 1;
+                        vm.count += 1;
+                        console.log(vm.count);
+
+                        if(vm.count === (total/2) ){
+                            console.log("You won!");
+                            vm.messageHide = false;
+                            vm.flag = false;   // When all cards matched, flag set false
+                            window.cancelAnimationFrame(this.animationId);
+                        }else{
+                            vm.messageHide = true;
+                        }
+                    }
+                    vm.isFirst = true;    
+                } 
+                vm.clickCount +=1;  
+            },  
+            setStartTime(time){
+            this.startTime = performance.now() - time;    
+            },
+            
+        }
+    });
+
+	
+	</script>
+	</body>
+</html>
